@@ -72,4 +72,4 @@ Unit tests are required. Cover at minimum:
 ## Out of scope (V1)
 
 Do not implement: geographic segmentation, individual-level parameter heterogeneity,
-per-user drill-down, V2G discharge, multi-week simulation, real-time price feeds, Type 6.
+per-user drill-down, V2G discharge, multi-week simulation, real-time price feeds.
