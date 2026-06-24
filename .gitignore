@@ -1,0 +1,14 @@
+.claude/
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+.env
+.DS_Store
+.idea/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+notebooks/.ipynb_checkpoints/
