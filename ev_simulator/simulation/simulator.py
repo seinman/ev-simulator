@@ -196,7 +196,7 @@ class Simulator:
                 for i in range(N_SIMULATION_DAYS)
             ])
 
-        df_week = df.filter(pl.col("settlement_date").is_in(dates)).sort(
+        df_week = df.filter(pl.col("settlement_date").is_in(dates.to_list())).sort(
             ["settlement_date", "settlement_period"]
         )
         expected_rows = N_SIMULATION_DAYS * HALF_HOUR_PERIODS_PER_DAY

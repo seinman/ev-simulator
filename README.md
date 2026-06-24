@@ -71,7 +71,14 @@ long trips interspersed with genuinely inactive days.
 draw a value above the 80% target SoC (e.g. a short trip since last charge). These are curtailed
 to 80% — no charging occurs for that event.
 
-<!-- TODO: add charging logic summary, IO smart scheduling -->
+**Charging logic:** users with `IMMEDIATE` strategy begin charging at plug-in and charge
+continuously at their archetype's rated power until the battery reaches 80% SoC. Users with
+`SMART_SCHEDULED` strategy (Intelligent Octopus, Type 2) defer charging to the cheapest
+contiguous block of half-hour settlement periods within their plug-in window. The cheapest
+window is found via a sliding-window prefix-sum over the day-ahead APX prices for that day;
+if the required charge duration exceeds the available window, the user falls back to immediate
+charging. In both cases, kWh needed and required charge duration are derived from the drawn
+plug-in SoC — they are never drawn independently.
 
 ## Design decisions
 
