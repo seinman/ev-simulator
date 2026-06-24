@@ -14,13 +14,17 @@ BLOC_LABELS = [f"{h:02d}:00" for h in range(0, 24, 2)]
 
 
 def _typical_day(arr: np.ndarray) -> np.ndarray:
-    """(N, 336) → (N, 48): mean over 7 IID days."""
-    return arr.reshape(arr.shape[0], N_SIMULATION_DAYS, HALF_HOUR_PERIODS_PER_DAY).mean(axis=1)
+    """(N, 336) → (N, 48): mean over days 1–6, excluding day 0.
+
+    Day 0 has no preceding overnight session, so its 00:00–07:00 slots are unpopulated
+    for archetypes with overnight sessions. Including it would suppress early-morning
+    plug-in rates to 6/7 of their true steady-state value."""
+    return arr.reshape(arr.shape[0], N_SIMULATION_DAYS, HALF_HOUR_PERIODS_PER_DAY)[:, 1:, :].mean(axis=1)
 
 
 def _typical_day_nan(arr: np.ndarray) -> np.ndarray:
     return np.nanmean(
-        arr.reshape(arr.shape[0], N_SIMULATION_DAYS, HALF_HOUR_PERIODS_PER_DAY), axis=1
+        arr.reshape(arr.shape[0], N_SIMULATION_DAYS, HALF_HOUR_PERIODS_PER_DAY)[:, 1:, :], axis=1
     )
 
 
