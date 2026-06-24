@@ -1,13 +1,12 @@
 # EV Simulator
 
-<!-- TODO: one-line description -->
+This simulator aims to explore how individual EV drivers' SOC, plug-in and charging behaviour evolves over the course of a representative week. It allows the simulation of a large number of users drawn from different archetypes. One of the types, Intelligent Octopus, charges only during the cheapest slot over their plug-in time, while the others charge immediately upon plug-in. Slot prices are taken from BMRS.
 
 ## Running the simulator
 
 ### Streamlit Community Cloud
 
-The live app is deployed via Streamlit Community Cloud. Connect the repository and set
-`app.py` as the entry point.
+The live app is deployed via Streamlit Community Cloud. Click [here](https://ev-simulator-tdj8w2huknjiwffwf9mnbj.streamlit.app/) to access the app.
 
 ### Local (Poetry)
 
@@ -204,8 +203,6 @@ source of historical half-hourly UK day-ahead prices:
 
 ### Uncertainty quantification on flexibility estimates
 
-<!-- TODO: flesh this out -->
-
 One of the core outputs of this simulator is an estimate of available flexibility at each half-hour
 settlement period. However, reporting a point estimate alone understates the problem: Axle's
 business depends on committing flexibility to markets or grid operators, where overcommitting
@@ -221,11 +218,7 @@ at any given time step. Key questions this would help answer:
 - How does the confidence interval scale with fleet size — i.e. how many EVs does Axle need to
   bring onto the platform before commitments become reliable?
 
-<!-- TODO: expand with specifics -->
-
 ### Individual-level parameter heterogeneity
-
-<!-- TODO: flesh this out -->
 
 Currently all users within an archetype share identical parameters; stochasticity comes from
 simulation draws alone. A natural extension is to give each user a personal version of each
@@ -233,11 +226,7 @@ parameter (e.g. battery size, efficiency, habitual plug-in time) drawn from a di
 centred on the archetype mean. This would better reflect real-world within-archetype variation
 and affect the tails of flexibility distributions.
 
-<!-- TODO: expand with specifics — distributional form, sigma choices, validation approach -->
-
 ### Geographic segmentation and regional parameter correlation
-
-<!-- TODO: flesh this out -->
 
 Individual parameters may be correlated by region — e.g. rural users likely have larger
 batteries and higher annual mileage; urban users may have lower charger availability or
@@ -245,11 +234,7 @@ different plug-in windows. Regional parameter distributions would also interact 
 constraints (network capacity, local generation mix), which is directly relevant to Axle's
 problem of dispatching flexibility within a constrained network.
 
-<!-- TODO: expand with specifics -->
-
 ### Dynamic and forecast day-ahead pricing
-
-<!-- TODO: flesh this out -->
 
 The simulator currently uses a static cached year of APX day-ahead prices (2023) sourced from
 the Elexon BMRS API. This is sufficient for a representative fleet flexibility analysis, but
@@ -264,8 +249,6 @@ two extensions would make it more useful in a live operational context:
   day-ahead flexibility market before prices are published), a price forecast model — even a
   simple seasonal baseline — could replace the static historical prices. This would allow Axle
   to estimate expected flexibility revenue before the auction clears.
-
-<!-- TODO: expand with specifics -->
 
 ### Bump charging and opportunistic top-ups
 
@@ -287,10 +270,7 @@ to need opportunistic top-ups.
 
 ### Policy evaluation: coordinated vs uncoordinated smart charging
 
-<!-- TODO: flesh this out -->
-
 The counterfactual simulation (moving all users to smart charging) likely demonstrates the
 synchronisation problem: uncoordinated smart scheduling shifts the peak rather than eliminating
-it. This is the core business case for coordinated charging — exactly what Axle is building.
+it. This is the core business case for coordinated charging.
 
-<!-- TODO: expand with specifics -->
