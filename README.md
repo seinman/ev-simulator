@@ -133,7 +133,36 @@ practical without async or background workers.
 
 ## Architecture
 
-<!-- TODO: brief overview -->
+```
+ev_driver_archetypes.csv ──┐
+                           ├──▶  Simulator  ──▶  SimulationResult
+    prices_apx_2025.csv ───┘     (seed, N)       (N_users × 336 arrays:
+                                    │              plugged_in, charging_kw, soc)
+                                    │
+                           PopulationVerifier / ArchetypeVerifier
+                           (retry up to 3× on out-of-tolerance draws)
+                                    │
+                    ┌───────────────┴───────────────┐
+                    ▼                               ▼
+          compute_metrics()            compute_session_metrics()
+          (plug-in rate, SoC,          (plug-in SoC histogram,
+           flex headroom by bloc)       kWh topped, plug-in/out density)
+                    │                               │
+                    └───────────────┬───────────────┘
+                                    ▼
+                           Streamlit dashboard
+                        (result cached in session_state;
+                         charts re-filter without re-running)
+```
+
+The simulation is fully vectorised over the user population: `plugged_in`,
+`charging_kw`, and `soc` are `(N_users, 336)` NumPy arrays filled in one pass
+per archetype per day using the cumsum trick. At 5–10k users the full run
+completes in under a second, making in-browser re-simulation practical.
+
+The dashboard separates compute from display: clicking **Run** populates
+`st.session_state`, and the archetype filter operates on the cached result
+without re-running the simulation.
 
 ---
 
