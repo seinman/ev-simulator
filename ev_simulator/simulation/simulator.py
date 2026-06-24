@@ -288,6 +288,11 @@ class Simulator:
 
         kwh_needed = (SOC_CAP - plug_in_soc) * archetype.battery_capacity_kwh
         charge_periods = np.floor(kwh_needed / archetype.charger_kw * 2).astype(int)
+        # Guarantee ≥1 period for any user who needs charge: floor gives 0 when kwh_needed
+        # < one half-hour's delivery, which causes _fill_soc to write SOC_CAP at plug-in
+        # rather than the true drawn SoC (charge_start == charge_end → empty in_charge).
+        needs_charge = plug_in_soc < SOC_CAP
+        charge_periods = np.where(needs_charge, np.maximum(charge_periods, 1), charge_periods)
 
         if archetype.charging_strategy is ChargingStrategy.SMART_SCHEDULED:
             charge_start = self._find_cheapest_windows(
