@@ -2,6 +2,8 @@
 
 This simulator aims to explore how individual EV drivers' SOC, plug-in and charging behaviour evolves over the course of a representative week. It allows the simulation of a large number of users drawn from different archetypes. One of the types, Intelligent Octopus, charges only during the cheapest slot over their plug-in time, while the others charge immediately upon plug-in. Slot prices are taken from BMRS.
 
+Validation notebook found in `notebooks` folder.
+
 ## Running the simulator
 
 ### Streamlit Community Cloud
@@ -40,6 +42,21 @@ parameters drawn stochastically around their archetype's means:
 | Plug-out time | Normal, archetype mean | 90% of draws within ±1 hour |
 | Plug-in SoC | Normal, archetype mean | 90% of draws within ±5% |
 
+### All days are independent (IID)
+
+Each simulated day is drawn independently with no carry-over of SoC between days. This holds
+because the end state of every day is deterministic: every user always reaches their target SoC
+(80%) before unplugging, so every day begins from the same known state and can be drawn fresh.
+
+The assumption rests on no archetype's charge duration ever exceeding their plug-in window. This
+holds for all V1 archetypes — the worst case is Type 3 (Infrequent chargers), who may need ~5
+hours of charging from 18% SoC, comfortably within their 13-hour window (18:00–07:00). If a
+future version introduces stochastic charge durations long enough to occasionally overrun the
+plug-in window, the IID assumption would break down and SoC would need to be carried forward
+across days.
+
+At present, no day-of-week seasonality is in the model. This would be an important extension for V2.
+
 **Type 3 (Infrequent chargers):** a Bernoulli(p=0.2) draw determines whether a plug-in event
 occurs at all on a given day; plug-in SoC is only drawn conditional on a plug-in occurring.
 
@@ -64,19 +81,6 @@ All users within an archetype share identical parameters; stochasticity arises e
 per-event draws (plug-in time, plug-out time, plug-in SoC). This keeps V1 simple and avoids
 the need to specify within-archetype variance for every variable. Individual-level heterogeneity
 is a natural V2 extension — see below.
-
-### All days are independent (IID)
-
-Each simulated day is drawn independently with no carry-over of SoC between days. This holds
-because the end state of every day is deterministic: every user always reaches their target SoC
-(80%) before unplugging, so every day begins from the same known state and can be drawn fresh.
-
-The assumption rests on no archetype's charge duration ever exceeding their plug-in window. This
-holds for all V1 archetypes — the worst case is Type 3 (Infrequent chargers), who may need ~5
-hours of charging from 18% SoC, comfortably within their 13-hour window (18:00–07:00). If a
-future version introduces stochastic charge durations long enough to occasionally overrun the
-plug-in window, the IID assumption would break down and SoC would need to be carried forward
-across days.
 
 ### Derived quantities, not independent draws
 
@@ -135,29 +139,6 @@ practical without async or background workers.
 
 ## Design decisions
 
-### Population and archetype verification
-
-After each population draw, two verifiers run before the simulation result is returned:
-
-- **`PopulationVerifier`** checks that each archetype's fraction of the drawn population is
-  within 10 percentage points of its target weight. This catches gross errors — wrong weights
-  in the CSV, a bug in the multinomial draw — without false-positiving on natural statistical
-  variance. A tighter relative tolerance (e.g. 5 %) would fail frequently at the fleet sizes
-  this simulator supports (1 000–10 000 users): for a 10 % archetype at 1 000 users, 5 %
-  relative gives only ±5 users of slack against a multinomial standard deviation of ~9.5 users.
-
-- **`ArchetypeVerifier`** checks that the per-archetype empirical plug-in rate is within
-  10 percentage points of the archetype's target `plug_in_frequency`. Only stochastic archetypes
-  (`plug_in_frequency < 1.0`, i.e. Type 3) are checked — deterministic archetypes always plug in
-  by construction. The check uses rising-edge detection (session *starts* per day) rather than
-  "any plugged-in period that day", which would incorrectly count overnight sessions as plug-in
-  events on the following day.
-
-If either verifier fails, the simulator re-draws the population and re-runs, up to three
-attempts total. If all three attempts fail, a `VerificationError` is raised. In practice,
-failures should be extremely rare at normal fleet sizes — the verifiers are safety nets against
-configuration bugs, not statistical tests.
-
 ### Error handling strategy
 
 Errors are handled according to severity and recoverability:
@@ -196,6 +177,29 @@ source of historical half-hourly UK day-ahead prices:
   fall back to the Nord Pool REST API on failure, and surface a clear error only if both sources
   are unavailable. API credentials would be injected via environment variables (`NORD_POOL_API_KEY`)
   and documented in `.env.example`, with the Docker container configured to accept them at runtime.
+  
+### Population and archetype verification
+
+After each population draw, two verifiers run before the simulation result is returned:
+
+- **`PopulationVerifier`** checks that each archetype's fraction of the drawn population is
+  within 10 percentage points of its target weight. This catches gross errors — wrong weights
+  in the CSV, a bug in the multinomial draw — without false-positiving on natural statistical
+  variance. A tighter relative tolerance (e.g. 5 %) would fail frequently at the fleet sizes
+  this simulator supports (1 000–10 000 users): for a 10 % archetype at 1 000 users, 5 %
+  relative gives only ±5 users of slack against a multinomial standard deviation of ~9.5 users.
+
+- **`ArchetypeVerifier`** checks that the per-archetype empirical plug-in rate is within
+  10 percentage points of the archetype's target `plug_in_frequency`. Only stochastic archetypes
+  (`plug_in_frequency < 1.0`, i.e. Type 3) are checked — deterministic archetypes always plug in
+  by construction. The check uses rising-edge detection (session *starts* per day) rather than
+  "any plugged-in period that day", which would incorrectly count overnight sessions as plug-in
+  events on the following day.
+
+If either verifier fails, the simulator re-draws the population and re-runs, up to three
+attempts total. If all three attempts fail, a `VerificationError` is raised. In practice,
+failures should be extremely rare at normal fleet sizes — the verifiers are safety nets against
+configuration bugs, not statistical tests.
 
 ---
 
@@ -210,7 +214,7 @@ creates penalties and undercommitting leaves revenue on the table.
 
 This simulator is well-placed to surface the *distribution* of flexibility, not just its mean.
 Because individual plug-in behaviour is stochastic, running the simulation across multiple seeds
-(or bootstrapping over the user population) yields a confidence interval on fleet-level flexibility
+(or bootstrapping over the user population) can yield a confidence interval on fleet-level flexibility
 at any given time step. Key questions this would help answer:
 
 - At what confidence level can Axle commit X MWh of flexibility in a given half-hour window?
@@ -236,7 +240,7 @@ problem of dispatching flexibility within a constrained network.
 
 ### Dynamic and forecast day-ahead pricing
 
-The simulator currently uses a static cached year of APX day-ahead prices (2023) sourced from
+The simulator currently uses a static cached year of APX day-ahead prices (2025) sourced from
 the Elexon BMRS API. This is sufficient for a representative fleet flexibility analysis, but
 two extensions would make it more useful in a live operational context:
 
@@ -270,7 +274,7 @@ to need opportunistic top-ups.
 
 ### Policy evaluation: coordinated vs uncoordinated smart charging
 
-The counterfactual simulation (moving all users to smart charging) likely demonstrates the
+The counterfactual simulation (moving all users to smart charging) demonstrates the
 synchronisation problem: uncoordinated smart scheduling shifts the peak rather than eliminating
 it. This is the core business case for coordinated charging.
 
